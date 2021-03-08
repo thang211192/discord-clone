@@ -1,4 +1,4 @@
-import React from 'react'
+import React,{useState,useEffect} from 'react'
 import './Slidebar.css'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import AddIcon from '@material-ui/icons/Add';
@@ -10,12 +10,35 @@ import { Avatar } from '@material-ui/core';
 import MicIcon from '@material-ui/icons/Mic';
 import HeadsetIcon from '@material-ui/icons/Headset';
 import SettingsIcon from '@material-ui/icons/Settings';
-
+import {useSelector} from 'react-redux'
+import { selectUser } from './features/userSlice';
+import db, {auth} from './firebase'
 function Slidebar() {
+    const user = useSelector(selectUser);
+    const [Channels, setChannels] = useState([]);
+
+    useEffect(() => {
+        db.collection('channels').onSnapshot(snapshot => (
+            setChannels(snapshot.docs.map(doc => ({
+                id: doc.id,
+                channel: doc.data(),
+            })))
+        ))
+    }, [])
+
+    const handleAddChannel = () => {
+        const channelName = prompt('Enter channel name')
+        if(channelName){
+            db.collection("channels").add({
+                channelName: channelName,
+            })
+        }
+    }
+
     return (
         <div className="sidebar">
             <div className='sidebar__top'>
-                <h3>Van thang</h3>
+                <h3>{user.displayName}</h3>
                 <ExpandMoreIcon/>
             </div>
             <div className='sidebar__channels'>
@@ -24,11 +47,16 @@ function Slidebar() {
                         <ExpandMoreIcon/>
                         <h4> channel</h4>
                     </div>
-                    <AddIcon className="sidebar__addChannel"/>
+                    <AddIcon onClick={handleAddChannel} className="sidebar__addChannel"/>
                 </div>
                 <div className='sidebar__channelsList'>
-                    <SidebarChannel />
-                    <SidebarChannel />
+                    {Channels.map(({id,channel}) => (
+                        <SidebarChannel
+                        key={id}
+                        id={id}
+                        channel = {channel.channelName}
+                        />
+                    ))}
                 </div>
             </div>
             <div className='sidebar__voice'>
@@ -46,10 +74,12 @@ function Slidebar() {
                 </div>
             </div>
             <div className='sidebar__profile'>
-                <Avatar src="https://scontent.fhan2-6.fna.fbcdn.net/v/t1.0-1/cp0/p40x40/116712349_1136919406692362_6264826831671252910_o.jpg?_nc_cat=100&ccb=3&_nc_sid=dbb9e7&_nc_ohc=NoB-DmVy21oAX9Z1zQD&_nc_ht=scontent.fhan2-6.fna&tp=27&oh=89de25350d6dae28353b9f61d2b55f4c&oe=6064D423"/>
+                <Avatar 
+                onClick={() => auth.signOut()}
+                src={user.photo}/>
                 <div className='sidebar__profileInfo'>
-                    <h3>@vanthang</h3>
-                    <p>#id</p>
+                    <h3>@{user.displayName}</h3>
+                    <p>#{user.uid.substring(0,5)}</p>
                 </div>
                 <div className='sidebar_profileIcons'>
                     <MicIcon/>
